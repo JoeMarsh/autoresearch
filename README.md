@@ -9,9 +9,18 @@ The Codex adapter adds lifecycle hooks, a local MCP server, SQLite-backed state,
 ## Install
 
 ```powershell
-codex plugin marketplace add JoeMarsh/autoresearch
-codex plugin add autoresearch@autoresearch
+codex plugin marketplace add JoeMarsh/CodexPlugins --ref main
+codex plugin add autoresearch@JoeMarsh
 ```
+
+The same marketplace also includes Advisor:
+
+```powershell
+codex plugin add advisor@JoeMarsh
+```
+
+The repository's self-contained `autoresearch` marketplace remains available
+for backwards compatibility.
 
 Start a new Codex task, then invoke the picker item or use:
 
