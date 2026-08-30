@@ -1,0 +1,6 @@
+interface:
+  display_name: "Autoresearch"
+  short_description: "Run Oh My Pi's measured research loop"
+  default_prompt: "$autoresearch optimize the repository's primary benchmark"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,60 @@
+{
+  "description": "Oh My Pi autoresearch prompt injection and continuation loop.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/hook.mjs\" user-prompt",
+            "commandWindows": "cmd.exe /d /s /c %PLUGIN_ROOT%\\scripts\\autoresearch_hook.cmd user-prompt",
+            "timeout": 30,
+            "statusMessage": "Loading autoresearch state",
+            "additionalContextLimit": 20000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(?:mcp__autoresearch__)?run_experiment$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/hook.mjs\" dashboard-running",
+            "commandWindows": "cmd.exe /d /s /c %PLUGIN_ROOT%\\scripts\\autoresearch_hook.cmd dashboard-running",
+            "timeout": 30,
+            "statusMessage": "Starting autoresearch experiment"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(?:mcp__autoresearch__)?(?:init_experiment|run_experiment|log_experiment|update_notes)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/hook.mjs\" dashboard",
+            "commandWindows": "cmd.exe /d /s /c %PLUGIN_ROOT%\\scripts\\autoresearch_hook.cmd dashboard",
+            "timeout": 30,
+            "statusMessage": "Refreshing autoresearch dashboard"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/hook.mjs\" stop",
+            "commandWindows": "cmd.exe /d /s /c %PLUGIN_ROOT%\\scripts\\autoresearch_hook.cmd stop",
+            "timeout": 30,
+            "statusMessage": "Checking autoresearch loop"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "autoresearch",
+  "version": "0.1.2+codex.20260830120321",
+  "description": "A Codex adapter for Oh My Pi's metric-driven autoresearch loop.",
+  "author": {
+    "name": "Oh My Pi contributors and JoeMarsh"
+  },
+  "homepage": "https://github.com/JoeMarsh/autoresearch",
+  "repository": "https://github.com/JoeMarsh/autoresearch",
+  "license": "MIT",
+  "keywords": [
+    "autoresearch",
+    "benchmark",
+    "optimization",
+    "experiments"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Autoresearch",
+    "shortDescription": "Run Oh My Pi's benchmark research loop",
+    "longDescription": "Runs the Oh My Pi autoresearch prompts and experiment semantics through Codex MCP tools and lifecycle hooks.",
+    "developerName": "JoeMarsh",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/JoeMarsh/autoresearch",
+    "defaultPrompt": [
+      "$autoresearch optimize the repository's primary benchmark"
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

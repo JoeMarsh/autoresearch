@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "autoresearch": {
+      "command": "node",
+      "args": ["dist/mcp-server.mjs"],
+      "cwd": "."
+    }
+  }
+}
