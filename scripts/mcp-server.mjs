@@ -7,6 +7,7 @@ import {
   runExperiment,
   updateNotes,
 } from "./lib/core.mjs";
+import { resolveWorkspaceCwd } from "./workspace-root.mjs";
 
 const server = new McpServer(
   { name: "autoresearch", version: "0.1.0" },
@@ -39,7 +40,7 @@ server.registerTool(
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
-  async params => textResult(initExperiment(process.cwd(), params)),
+  async params => textResult(initExperiment(await resolveWorkspaceCwd(server), params)),
 );
 
 server.registerTool(
@@ -52,7 +53,7 @@ server.registerTool(
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
-  async params => textResult(await runExperiment(process.cwd(), params)),
+  async params => textResult(await runExperiment(await resolveWorkspaceCwd(server), params)),
 );
 
 server.registerTool(
@@ -75,7 +76,7 @@ server.registerTool(
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
-  async params => textResult(logExperiment(process.cwd(), params)),
+  async params => textResult(logExperiment(await resolveWorkspaceCwd(server), params)),
 );
 
 server.registerTool(
@@ -89,7 +90,7 @@ server.registerTool(
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
-  async params => textResult(updateNotes(process.cwd(), params)),
+  async params => textResult(updateNotes(await resolveWorkspaceCwd(server), params)),
 );
 
 const transport = new StdioServerTransport();

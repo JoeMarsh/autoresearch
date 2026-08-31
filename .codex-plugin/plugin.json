@@ -1,6 +1,6 @@
 {
   "name": "autoresearch",
-  "version": "0.1.2+codex.20260830120321",
+  "version": "0.1.2+codex.20260831033721",
   "description": "A Codex adapter for Oh My Pi's metric-driven autoresearch loop.",
   "author": {
     "name": "Oh My Pi contributors and JoeMarsh"

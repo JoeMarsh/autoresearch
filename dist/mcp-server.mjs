@@ -460,8 +460,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path3, errorMaps, issueData } = params;
-      const fullPath = [...path3, ...issueData.path || []];
+      const { data, path: path4, errorMaps, issueData } = params;
+      const fullPath = [...path4, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -745,11 +745,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path3, key) {
+      constructor(parent, value, path4, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path3;
+        this._path = path4;
         this._key = key;
       }
       get path() {
@@ -4180,10 +4180,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path3) {
-  if (!path3)
+function getElementAtPath(obj, path4) {
+  if (!path4)
     return obj;
-  return path3.reduce((acc, key) => acc?.[key], obj);
+  return path4.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -4514,11 +4514,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path3, issues) {
+function prefixIssues(path4, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path3);
+    iss.path.unshift(path4);
     return iss;
   });
 }
@@ -5004,16 +5004,16 @@ function flattenError(error61, mapper = (issue2) => issue2.message) {
 }
 function formatError(error61, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error62, path3 = []) => {
+  const processError = (error62, path4 = []) => {
     for (const issue2 of error62.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path3, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path4, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else {
-        const fullpath = [...path3, ...issue2.path];
+        const fullpath = [...path4, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -5052,17 +5052,17 @@ function formatError(error61, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error61, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error62, path3 = []) => {
+  const processError = (error62, path4 = []) => {
     var _a3;
     for (const issue2 of error62.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path3, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path4, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path3, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path4, ...issue2.path]);
       } else {
-        const fullpath = [...path3, ...issue2.path];
+        const fullpath = [...path4, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -5101,8 +5101,8 @@ function treeifyError(error61, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path3 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path3) {
+  const path4 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path4) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -20904,11 +20904,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path3) {
-  if (path3.length === 0) {
+function getDotPath(path4) {
+  if (path4.length === 0) {
     return "object root";
   }
-  return path3.reduce((acc, seg, index) => {
+  return path4.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -22787,13 +22787,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path3 = ref.slice(1).split("/").filter(Boolean);
-  if (path3.length === 0) {
+  const path4 = ref.slice(1).split("/").filter(Boolean);
+  if (path4.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path3[0] === defsKey) {
-    const key = path3[1] === void 0 ? void 0 : decodeJSONPointerSegment(path3[1]);
+  if (path4[0] === defsKey) {
+    const key = path4[1] === void 0 ? void 0 : decodeJSONPointerSegment(path4[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -31047,8 +31047,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path3) {
-      let input2 = path3;
+    function removeDotSegments(path4) {
+      let input2 = path4;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -31453,8 +31453,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path3 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path3 && path3 !== "/" ? path3 : void 0;
+        const path4 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path4 && path4 !== "/" ? path4 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -34960,12 +34960,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs2, exportName) {
+    function addFormats(ajv, list, fs3, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs2[f]);
+        ajv.addFormat(f, fs3[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -37522,6 +37522,31 @@ CREATE INDEX IF NOT EXISTS runs_pending_idx ON runs(session_id, status, abandone
   }
 });
 
+// scripts/workspace-root.mjs
+import fs2 from "node:fs";
+import path2 from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+async function resolveWorkspaceCwd(server2) {
+  let roots;
+  try {
+    roots = (await server2.server.listRoots()).roots;
+  } catch (error61) {
+    throw new Error(`Autoresearch requires an MCP client that exposes workspace roots: ${error61.message}`);
+  }
+  const candidates = roots.filter((root) => root.uri.startsWith("file:")).map((root) => fileURLToPath2(root.uri)).filter((rootPath) => fs2.existsSync(path2.join(rootPath, "autoresearch.sh")));
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+  if (candidates.length === 0) {
+    throw new Error("No MCP workspace root contains ./autoresearch.sh");
+  }
+  throw new Error(`Multiple MCP workspace roots contain ./autoresearch.sh: ${candidates.join(", ")}`);
+}
+var init_workspace_root = __esm({
+  "scripts/workspace-root.mjs"() {
+  }
+});
+
 // scripts/mcp-server.mjs
 var mcp_server_exports = {};
 function textResult(text) {
@@ -37534,6 +37559,7 @@ var init_mcp_server2 = __esm({
     init_stdio2();
     init_zod();
     init_core3();
+    init_workspace_root();
     server = new McpServer(
       { name: "autoresearch", version: "0.1.0" },
       {
@@ -37560,7 +37586,7 @@ var init_mcp_server2 = __esm({
         },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
       },
-      async (params) => textResult(initExperiment(process.cwd(), params))
+      async (params) => textResult(initExperiment(await resolveWorkspaceCwd(server), params))
     );
     server.registerTool(
       "run_experiment",
@@ -37572,7 +37598,7 @@ var init_mcp_server2 = __esm({
         },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
       },
-      async (params) => textResult(await runExperiment(process.cwd(), params))
+      async (params) => textResult(await runExperiment(await resolveWorkspaceCwd(server), params))
     );
     server.registerTool(
       "log_experiment",
@@ -37594,7 +37620,7 @@ var init_mcp_server2 = __esm({
         },
         annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false }
       },
-      async (params) => textResult(logExperiment(process.cwd(), params))
+      async (params) => textResult(logExperiment(await resolveWorkspaceCwd(server), params))
     );
     server.registerTool(
       "update_notes",
@@ -37607,7 +37633,7 @@ var init_mcp_server2 = __esm({
         },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
       },
-      async (params) => textResult(updateNotes(process.cwd(), params))
+      async (params) => textResult(updateNotes(await resolveWorkspaceCwd(server), params))
     );
     transport = new StdioServerTransport();
     await server.connect(transport);
@@ -37616,9 +37642,9 @@ var init_mcp_server2 = __esm({
 
 // scripts/mcp-launcher.mjs
 import os2 from "node:os";
-import path2 from "node:path";
+import path3 from "node:path";
 if (!process.env.OMP_AUTORESEARCH_DB_DIR && !process.env.PLUGIN_DATA && !process.env.CLAUDE_PLUGIN_DATA) {
-  const codexHome = process.env.CODEX_HOME || path2.join(os2.homedir(), ".codex");
-  process.env.OMP_AUTORESEARCH_DB_DIR = path2.join(codexHome, "plugin-data", "autoresearch");
+  const codexHome = process.env.CODEX_HOME || path3.join(os2.homedir(), ".codex");
+  process.env.OMP_AUTORESEARCH_DB_DIR = path3.join(codexHome, "plugin-data", "autoresearch");
 }
 await init_mcp_server2().then(() => mcp_server_exports);
