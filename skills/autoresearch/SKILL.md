@@ -16,6 +16,8 @@ Invoke it as `$autoresearch <goal>`. The plugin's lifecycle hook injects the bun
 
 Do not substitute a different benchmark command: the implementation uses `bash autoresearch.sh`. Do not add stronger scope guards or change keep/discard behavior; Oh My Pi records scope deviations after the fact and its discard path resets and cleans uncommitted work on an `autoresearch/*` branch.
 
+The one addition to Oh My Pi is guards. When the goal says something must not get worse (a correctness check, a cost paid elsewhere), have `autoresearch.sh` print it as a `METRIC` line and pass it to `init_experiment` as a guard (`min`, `max`, or `tolerance` against the segment baseline with its `direction`). A `keep` whose harness output breaks a guard is logged as `guard_failed` and reverted.
+
 Use `$autoresearch off` to stop automatic continuation. Use `$autoresearch clear`, optionally followed by `--keep-tree` or `--reset-tree`, to apply Oh My Pi's clear behavior.
 
 The unmodified upstream source and prompts are under `../../vendor/oh-my-pi/autoresearch/`.
