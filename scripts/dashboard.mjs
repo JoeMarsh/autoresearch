@@ -1,4 +1,4 @@
-import { statusSnapshot } from "./lib/core.mjs";
+import { describeGuard, statusSnapshot } from "./lib/core.mjs";
 
 function commas(value) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
@@ -61,14 +61,16 @@ export function renderDashboard(cwd, options = {}) {
   const discarded = runs.filter(run => run.status === "discard").length;
   const crashed = runs.filter(run => run.status === "crash").length;
   const checksFailed = runs.filter(run => run.status === "checks_failed").length;
+  const guardFailed = runs.filter(run => run.status === "guard_failed").length;
   const latestConfidence = [...runs].reverse().find(run => run.confidence !== null)?.confidence ?? null;
   const iterationCount = session.maxIterations === null ? String(runs.length) : `${runs.length}/${session.maxIterations}`;
   const lines = [
     `AUTORESEARCH · ${compact(session.name, 64)}`,
     `Mode: ${modeStatus(control, session, runs)}  Segment: ${session.currentSegment + 1}  Runs: ${iterationCount}`,
-    `Kept: ${kept}  Discarded: ${discarded}  Crashed: ${crashed}  Checks failed: ${checksFailed}`,
+    `Kept: ${kept}  Discarded: ${discarded}  Crashed: ${crashed}  Checks failed: ${checksFailed}${session.guards.length > 0 ? `  Guard failed: ${guardFailed}` : ""}`,
     `Baseline: ${baseline ? `${formatNum(baseline.metric, session.metricUnit)} (#${baseline.id})` : "pending"}`,
   ];
+  if (session.guards.length > 0) lines.push(`Guards: ${session.guards.map(describeGuard).join("; ")}`);
 
   if (best) {
     let progress = `Best: ${formatNum(best.metric, session.metricUnit)} (#${best.id})`;

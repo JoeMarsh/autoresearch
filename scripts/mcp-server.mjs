@@ -32,6 +32,13 @@ server.registerTool(
       metric_unit: z.string().optional().describe("metric unit (e.g. ms, µs, mb)"),
       direction: z.enum(["lower", "higher"]).optional().describe("better direction (default lower)"),
       secondary_metrics: z.array(z.string()).optional().describe("secondary metric names"),
+      guards: z.array(z.object({
+        metric: z.string().describe("metric name printed by autoresearch.sh as `METRIC <name>=<value>`"),
+        min: z.number().optional().describe("fail when the metric is below this value"),
+        max: z.number().optional().describe("fail when the metric is above this value"),
+        tolerance: z.number().optional().describe("fail when the metric regresses by more than this fraction of the segment baseline (0.02 = 2%)"),
+        direction: z.enum(["lower", "higher"]).optional().describe("better direction for this metric; required with tolerance"),
+      })).optional().describe("metrics that must not regress: a `keep` whose harness output breaks a guard is logged as guard_failed and reverted. Use them for anything the goal says must not get worse, such as correctness checks or a cost paid elsewhere."),
       scope_paths: z.array(z.string()).optional().describe("expected-to-modify paths"),
       off_limits: z.array(z.string()).optional().describe("off-limits paths"),
       constraints: z.array(z.string()).optional().describe("free-form constraints"),

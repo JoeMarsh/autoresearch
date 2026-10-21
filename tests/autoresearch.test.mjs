@@ -122,6 +122,59 @@ test("full branch, harness, run, keep, discard, notes, and max-iteration lifecyc
   assert.match(statusSnapshot(cwd).session.notes, /## Ideas\n- try batching/);
 });
 
+test("guards turn a regressing keep into a reverted guard_failed run", async () => {
+  const cwd = makeRepo();
+  process.env.OMP_AUTORESEARCH_DB_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "codex-autoresearch-guard-db-"));
+  assert.equal(startAutoresearch(cwd, "guard test").ok, true);
+  write(path.join(cwd, "autoresearch.sh"), [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    "echo \"METRIC score=$(cat score.txt 2>/dev/null || echo 10)\"",
+    "echo \"METRIC cost=$(cat cost.txt 2>/dev/null || echo 100)\"",
+    "[ -e broken.txt ] || echo 'METRIC digest_ok=1'",
+    "",
+  ].join("\n"));
+
+  assert.match(initExperiment(cwd, {
+    name: "guarded",
+    primary_metric: "score",
+    guards: [{ metric: "cost", tolerance: 0.02 }],
+  }), /^Error: Guard cost: tolerance needs a direction/);
+
+  const initialized = initExperiment(cwd, {
+    name: "guarded",
+    primary_metric: "score",
+    direction: "lower",
+    guards: [{ metric: "cost", tolerance: 0.02, direction: "lower" }, { metric: "digest_ok", min: 1 }],
+  });
+  assert.match(initialized, /Guards .*cost within 2% of baseline \(lower is better\); digest_ok >= 1/);
+
+  await runExperiment(cwd, {});
+  assert.match(logExperiment(cwd, { metric: 10, status: "keep", description: "baseline" }), /Logged run #1: keep/);
+
+  write(path.join(cwd, "score.txt"), "8\n");
+  write(path.join(cwd, "cost.txt"), "101\n");
+  await runExperiment(cwd, {});
+  assert.match(logExperiment(cwd, { metric: 8, status: "keep", description: "within tolerance" }), /Logged run #2: keep/);
+
+  write(path.join(cwd, "score.txt"), "7\n");
+  write(path.join(cwd, "cost.txt"), "104\n");
+  await runExperiment(cwd, {});
+  const regressed = logExperiment(cwd, { metric: 7, status: "keep", description: "moves cost elsewhere", metrics: { cost: 100 } });
+  assert.match(regressed, /Logged run #3: guard_failed/);
+  assert.match(regressed, /cost=104 regressed more than 2% from baseline 100/);
+  assert.equal(fs.readFileSync(path.join(cwd, "score.txt"), "utf8").trim(), "8");
+
+  write(path.join(cwd, "broken.txt"), "\n");
+  await runExperiment(cwd, {});
+  assert.match(logExperiment(cwd, { metric: 8, status: "keep", description: "drops the check" }), /digest_ok was not printed by autoresearch\.sh/);
+  assert.equal(fs.existsSync(path.join(cwd, "broken.txt")), false);
+
+  const dashboard = renderDashboard(cwd);
+  assert.match(dashboard, /Guard failed: 2/);
+  assert.match(dashboard, /Best: 8 \(#2\)/);
+});
+
 test("Stop hook emits the exact rendered resume prompt while active", () => {
   const cwd = makeRepo();
   const dbRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-autoresearch-hook-db-"));
@@ -157,6 +210,27 @@ test("desktop skill-link invocation activates the autoresearch hook", () => {
   assert.match(output.systemMessage, /^AUTORESEARCH\nMode: setup/m);
   assert.match(output.hookSpecificOutput.additionalContext, /optimize desktop activation/);
   assert.equal(loadControl(cwd).active, true);
+});
+
+test("Claude Code plugin skill invocation activates the autoresearch hook", () => {
+  const cwd = makeRepo();
+  const pluginData = fs.mkdtempSync(path.join(os.tmpdir(), "claude-autoresearch-plugin-data-"));
+  const environment = { ...process.env, CLAUDE_PLUGIN_DATA: pluginData };
+  delete environment.OMP_AUTORESEARCH_DB_DIR;
+  delete environment.PLUGIN_DATA;
+  const hook = spawnSync("node", [path.join(pluginRoot, "scripts", "hook.mjs"), "user-prompt"], {
+    cwd,
+    env: environment,
+    input: JSON.stringify({ cwd, prompt: "/autoresearch:autoresearch optimize claude activation", hook_event_name: "UserPromptSubmit" }),
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  assert.equal(hook.status, 0, hook.stderr);
+  const output = JSON.parse(hook.stdout);
+  assert.match(output.hookSpecificOutput.additionalContext, /optimize claude activation/);
+  assert.match(run("git", ["branch", "--show-current"], cwd), /^autoresearch\/optimize-claude-activation-/);
+  const [projectEntry] = fs.readdirSync(pluginData);
+  assert.equal(fs.existsSync(path.join(pluginData, projectEntry, "codex-control.json")), true);
 });
 
 test("desktop skill-link invocation accepts Codex's encoded space separator", () => {

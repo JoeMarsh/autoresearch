@@ -1,0 +1,17 @@
+{
+  "name": "autoresearch",
+  "version": "0.2.0",
+  "description": "Oh My Pi's metric-driven autoresearch loop for Claude Code, with guard metrics.",
+  "author": {
+    "name": "Oh My Pi contributors and JoeMarsh"
+  },
+  "homepage": "https://github.com/JoeMarsh/autoresearch",
+  "repository": "https://github.com/JoeMarsh/autoresearch",
+  "license": "MIT",
+  "keywords": [
+    "autoresearch",
+    "benchmark",
+    "optimization",
+    "experiments"
+  ]
+}

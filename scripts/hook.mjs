@@ -44,7 +44,7 @@ if (mode !== "user-prompt") {
 }
 
 const prompt = typeof input.prompt === "string" ? input.prompt : "";
-const command = prompt.match(/^\s*(?:\/autoresearch|\$autoresearch(?::autoresearch)?|\[\$autoresearch:autoresearch\]\([^)]+\))(?:(?:\s|&#x20;|&#32;|&nbsp;)+([\s\S]*?))?\s*$/i);
+const command = prompt.match(/^\s*(?:\/autoresearch(?::autoresearch)?|\$autoresearch(?::autoresearch)?|\[\$autoresearch:autoresearch\]\([^)]+\))(?:(?:\s|&#x20;|&#32;|&nbsp;)+([\s\S]*?))?\s*$/i);
 if (command) {
   const args = (command[1] ?? "").trim();
   const normalized = args.toLowerCase();

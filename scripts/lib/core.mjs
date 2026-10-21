@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   off_limits_json TEXT NOT NULL DEFAULT '[]',
   constraints_json TEXT NOT NULL DEFAULT '[]',
   secondary_metrics_json TEXT NOT NULL DEFAULT '[]',
+  guards_json TEXT NOT NULL DEFAULT '[]',
   notes TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,
   closed_at INTEGER
@@ -213,7 +214,9 @@ export function openStorage(cwd, create = true) {
   const db = new DatabaseSync(paths.dbPath);
   db.exec("PRAGMA busy_timeout = 5000");
   db.exec(SCHEMA_SQL);
-  db.exec("PRAGMA user_version = 1");
+  const sessionColumns = db.prepare("PRAGMA table_info(sessions)").all().map(column => column.name);
+  if (!sessionColumns.includes("guards_json")) db.exec("ALTER TABLE sessions ADD COLUMN guards_json TEXT NOT NULL DEFAULT '[]'");
+  db.exec("PRAGMA user_version = 2");
   return { db, ...paths };
 }
 
@@ -244,6 +247,7 @@ function sessionFromRow(row) {
     offLimits: parseJson(row.off_limits_json, []).filter(value => typeof value === "string"),
     constraints: parseJson(row.constraints_json, []).filter(value => typeof value === "string"),
     secondaryMetrics: parseJson(row.secondary_metrics_json, []).filter(value => typeof value === "string"),
+    guards: parseJson(row.guards_json, []).filter(value => value && typeof value.metric === "string"),
     notes: row.notes,
     createdAt: Number(row.created_at),
     closedAt: row.closed_at === null ? null : Number(row.closed_at),
@@ -476,6 +480,60 @@ function bestKeptRun(runs, segment, direction) {
     if (!best || (direction === "lower" ? run.metric < best.metric : run.metric > best.metric)) best = run;
   }
   return best;
+}
+
+function normalizeGuards(values) {
+  const guards = [];
+  for (const value of values ?? []) {
+    const metric = String(value?.metric ?? "").trim();
+    if (!metric || DENIED_KEY_NAMES.has(metric)) return { error: "Each guard needs a metric name." };
+    const guard = { metric };
+    for (const key of ["min", "max", "tolerance"]) {
+      if (value[key] === undefined || value[key] === null) continue;
+      if (!Number.isFinite(value[key])) return { error: `Guard ${metric}: ${key} must be a finite number.` };
+      guard[key] = value[key];
+    }
+    if (guard.tolerance !== undefined) {
+      if (guard.tolerance < 0) return { error: `Guard ${metric}: tolerance must not be negative.` };
+      if (value.direction !== "lower" && value.direction !== "higher") {
+        return { error: `Guard ${metric}: tolerance needs a direction ("lower" or "higher" is better).` };
+      }
+      guard.direction = value.direction;
+    }
+    if (guard.min === undefined && guard.max === undefined && guard.tolerance === undefined) {
+      return { error: `Guard ${metric}: set min, max, or tolerance.` };
+    }
+    guards.push(guard);
+  }
+  return { guards };
+}
+
+export function describeGuard(guard) {
+  const parts = [];
+  if (guard.min !== undefined) parts.push(`>= ${guard.min}`);
+  if (guard.max !== undefined) parts.push(`<= ${guard.max}`);
+  if (guard.tolerance !== undefined) parts.push(`within ${formatNum(guard.tolerance * 100)}% of baseline (${guard.direction} is better)`);
+  return `${guard.metric} ${parts.join(", ")}`;
+}
+
+// Guards read only harness-parsed metrics so a logged value cannot talk a run past them.
+function guardFailures(guards, metrics, baselineMetrics) {
+  const failures = [];
+  for (const guard of guards) {
+    if (!Object.hasOwn(metrics, guard.metric)) {
+      failures.push(`${guard.metric} was not printed by ${HARNESS_FILENAME}`);
+      continue;
+    }
+    const value = metrics[guard.metric];
+    if (guard.min !== undefined && value < guard.min) failures.push(`${guard.metric}=${value} is below ${guard.min}`);
+    if (guard.max !== undefined && value > guard.max) failures.push(`${guard.metric}=${value} is above ${guard.max}`);
+    const base = baselineMetrics && Object.hasOwn(baselineMetrics, guard.metric) ? baselineMetrics[guard.metric] : null;
+    if (guard.tolerance === undefined || base === null) continue;
+    const allowance = Math.abs(base) * guard.tolerance;
+    const regressed = guard.direction === "lower" ? value > base + allowance : value < base - allowance;
+    if (regressed) failures.push(`${guard.metric}=${value} regressed more than ${formatNum(guard.tolerance * 100)}% from baseline ${base}`);
+  }
+  return failures;
 }
 
 function sortedMedian(values) {
@@ -722,6 +780,7 @@ function updateSession(storage, sessionId, values) {
     offLimits: "off_limits_json",
     constraints: "constraints_json",
     secondaryMetrics: "secondary_metrics_json",
+    guards: "guards_json",
     notes: "notes",
   };
   const clauses = [];
@@ -730,7 +789,7 @@ function updateSession(storage, sessionId, values) {
     if (!(key in values)) continue;
     clauses.push(`${column} = ?`);
     const value = values[key];
-    bindings.push(["scopePaths", "offLimits", "constraints", "secondaryMetrics"].includes(key) ? JSON.stringify(value) : value);
+    bindings.push(["scopePaths", "offLimits", "constraints", "secondaryMetrics", "guards"].includes(key) ? JSON.stringify(value) : value);
   }
   if (clauses.length > 0) storage.db.prepare(`UPDATE sessions SET ${clauses.join(", ")} WHERE id = ?`).run(...bindings, sessionId);
   return getSessionById(storage, sessionId);
@@ -745,6 +804,8 @@ export function initExperiment(cwd, params) {
     const offLimits = dedupeStrings(params.off_limits).map(normalizePathSpec);
     const constraints = dedupeStrings(params.constraints);
     const secondaryMetrics = dedupeStrings(params.secondary_metrics);
+    const { guards, error: guardError } = normalizeGuards(params.guards);
+    if (guardError) return `Error: ${guardError}`;
     const goal = params.goal?.trim() || null;
     const maxIterations = Number.isFinite(params.max_iterations) && params.max_iterations > 0
       ? Math.floor(params.max_iterations)
@@ -779,8 +840,8 @@ export function initExperiment(cwd, params) {
       const inserted = storage.db.prepare(`INSERT INTO sessions (
         name, goal, primary_metric, metric_unit, direction,
         preferred_command, branch, baseline_commit, max_iterations,
-        scope_paths_json, off_limits_json, constraints_json, secondary_metrics_json, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        scope_paths_json, off_limits_json, constraints_json, secondary_metrics_json, guards_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         params.name,
         goal,
         params.primary_metric,
@@ -794,6 +855,7 @@ export function initExperiment(cwd, params) {
         JSON.stringify(offLimits),
         JSON.stringify(constraints),
         JSON.stringify(secondaryMetrics),
+        JSON.stringify(guards),
         Date.now(),
       );
       session = getSessionById(storage, Number(inserted.lastInsertRowid));
@@ -809,6 +871,7 @@ export function initExperiment(cwd, params) {
         offLimits,
         constraints,
         secondaryMetrics,
+        guards,
         primaryMetric: params.primary_metric,
         metricUnit,
         direction,
@@ -833,6 +896,7 @@ export function initExperiment(cwd, params) {
     lines.push(`Benchmark entrypoint: ${DEFAULT_HARNESS_COMMAND}`);
     if (session.scopePaths.length > 0) lines.push(`Files in scope: ${session.scopePaths.join(", ")}`);
     if (session.offLimits.length > 0) lines.push(`Off limits: ${session.offLimits.join(", ")}`);
+    if (session.guards.length > 0) lines.push(`Guards (a keep that breaks one is logged as guard_failed and reverted): ${session.guards.map(describeGuard).join("; ")}`);
     if (session.maxIterations !== null) lines.push(`Max iterations per segment: ${session.maxIterations}`);
     if (session.branch) lines.push(`Active branch: ${session.branch}`);
     if (session.baselineCommit) lines.push(`Baseline commit: ${session.baselineCommit.slice(0, 12)}`);
@@ -1048,10 +1112,17 @@ export function logExperiment(cwd, params) {
     const deviations = scopeDeviations(allModified, session);
     const justification = params.justification?.trim() || null;
     const warnings = [];
+    let status = params.status;
+    let failedGuards = [];
+    if (status === "keep" && session.guards.length > 0) {
+      const baseline = baselineRun(listLoggedRuns(storage, session.id), session.currentSegment);
+      failedGuards = guardFailures(session.guards, pending.parsedMetrics ?? {}, baseline?.parsedMetrics ?? null);
+      if (failedGuards.length > 0) status = "guard_failed";
+    }
     let commitHash = params.commit?.trim() || headSha(cwd);
     let gitNote = null;
     try {
-      if (params.status === "keep") {
+      if (status === "keep") {
         if (onAutoresearchBranch && allModified.length > 0) {
           const result = commitKept(cwd, params, allModified, session.primaryMetric);
           gitNote = result.note;
@@ -1084,7 +1155,7 @@ export function logExperiment(cwd, params) {
     storage.db.prepare(`UPDATE runs SET status = ?, description = ?, metric = ?, metrics_json = ?, asi_json = ?,
       commit_hash = ?, confidence = NULL, modified_paths_json = ?, scope_deviations_json = ?, justification = ?, logged_at = ?
       WHERE id = ?`).run(
-      params.status,
+      status,
       params.description,
       params.metric,
       JSON.stringify(secondary),
@@ -1107,7 +1178,8 @@ export function logExperiment(cwd, params) {
       const control = loadControl(cwd);
       saveControl(cwd, { active: false, goal: control.goal, branch: control.branch });
     }
-    const lines = [`Logged run #${pending.id}: ${params.status} — ${params.description}`];
+    const lines = [`Logged run #${pending.id}: ${status} — ${params.description}`];
+    for (const failure of failedGuards) lines.push(`Guard failed: ${failure}. The keep was reverted.`);
     if (baseline) lines.push(`Baseline ${session.primaryMetric}: ${formatNum(baseline.metric, session.metricUnit)}`);
     lines.push(`This run: ${formatNum(params.metric, session.metricUnit)}`);
     if (Object.keys(secondary).length > 0) lines.push(`Secondary metrics: ${Object.entries(secondary).map(([name, value]) => `${name}=${value}`).join("  ")}`);
