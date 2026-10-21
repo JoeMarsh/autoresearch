@@ -1,0 +1,15 @@
+{
+  "name": "joemarsh-autoresearch",
+  "description": "JoeMarsh's autoresearch plugin for Claude Code.",
+  "owner": {
+    "name": "JoeMarsh"
+  },
+  "plugins": [
+    {
+      "name": "autoresearch",
+      "source": "./",
+      "description": "Oh My Pi's metric-driven autoresearch loop for Claude Code, with guard metrics.",
+      "category": "development"
+    }
+  ]
+}

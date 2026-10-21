@@ -212,6 +212,27 @@ test("desktop skill-link invocation activates the autoresearch hook", () => {
   assert.equal(loadControl(cwd).active, true);
 });
 
+test("Claude Code plugin skill invocation activates the autoresearch hook", () => {
+  const cwd = makeRepo();
+  const pluginData = fs.mkdtempSync(path.join(os.tmpdir(), "claude-autoresearch-plugin-data-"));
+  const environment = { ...process.env, CLAUDE_PLUGIN_DATA: pluginData };
+  delete environment.OMP_AUTORESEARCH_DB_DIR;
+  delete environment.PLUGIN_DATA;
+  const hook = spawnSync("node", [path.join(pluginRoot, "scripts", "hook.mjs"), "user-prompt"], {
+    cwd,
+    env: environment,
+    input: JSON.stringify({ cwd, prompt: "/autoresearch:autoresearch optimize claude activation", hook_event_name: "UserPromptSubmit" }),
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  assert.equal(hook.status, 0, hook.stderr);
+  const output = JSON.parse(hook.stdout);
+  assert.match(output.hookSpecificOutput.additionalContext, /optimize claude activation/);
+  assert.match(run("git", ["branch", "--show-current"], cwd), /^autoresearch\/optimize-claude-activation-/);
+  const [projectEntry] = fs.readdirSync(pluginData);
+  assert.equal(fs.existsSync(path.join(pluginData, projectEntry, "codex-control.json")), true);
+});
+
 test("desktop skill-link invocation accepts Codex's encoded space separator", () => {
   const cwd = makeRepo();
   const dbRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-autoresearch-encoded-link-db-"));

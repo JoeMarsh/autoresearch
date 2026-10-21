@@ -80,14 +80,17 @@ test("MCP server exposes exactly the four Oh My Pi experiment tools", async () =
   }
 });
 
-test("installed MCP config is root-relative and uses the bundled server", () => {
+test("installed MCP configs launch the bundled server from the plugin root", () => {
   const pluginRoot = path.resolve(import.meta.dirname, "..");
-  const config = JSON.parse(fs.readFileSync(path.join(pluginRoot, ".mcp.json"), "utf8"));
-  assert.deepEqual(config.mcpServers.autoresearch, {
+  const codexManifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, ".codex-plugin", "plugin.json"), "utf8"));
+  const codexConfig = JSON.parse(fs.readFileSync(path.join(pluginRoot, codexManifest.mcpServers), "utf8"));
+  assert.deepEqual(codexConfig.mcpServers.autoresearch, {
     command: "node",
     args: ["dist/mcp-server.mjs"],
     cwd: ".",
   });
+  const claudeConfig = JSON.parse(fs.readFileSync(path.join(pluginRoot, ".mcp.json"), "utf8"));
+  assert.deepEqual(claudeConfig.mcpServers.autoresearch.args, ["${CLAUDE_PLUGIN_ROOT}/dist/mcp-server.mjs"]);
 });
 
 test("bundled MCP server runs without node_modules", async () => {

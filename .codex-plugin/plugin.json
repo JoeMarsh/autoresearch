@@ -1,6 +1,6 @@
 {
   "name": "autoresearch",
-  "version": "0.1.2+codex.20260831033721",
+  "version": "0.2.0",
   "description": "A Codex adapter for Oh My Pi's metric-driven autoresearch loop.",
   "author": {
     "name": "Oh My Pi contributors and JoeMarsh"
@@ -31,5 +31,5 @@
       "$autoresearch optimize the repository's primary benchmark"
     ]
   },
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.codex-plugin/mcp.json"
 }
